@@ -337,7 +337,7 @@ function rghv_modal_footer() {
   controls_tip.appendChild(next_article_control("(←Next Repo)"));
   controls_tip.appendChild(rghv_button("(↓See Topics)", function(e) { display_topics_as_notification(); }));
   controls_tip.appendChild(rghv_button("(↑Access Menu)", function(e) { display_menu(); })); // clicking should appear to do nothing
-  controls_tip.appendChild(next_article_control("(Next Repo)"));
+  controls_tip.appendChild(next_article_control("(Next Repo→)"));
   modal_footer.appendChild(controls_tip);
   modal_footer.appendChild(attribution);
   return modal_footer;
