@@ -1,5 +1,6 @@
 import atexit
 import asyncio
+from datetime import datetime
 import os
 import random
 import requests
@@ -15,6 +16,7 @@ from .data_utils import DB
 topics = ('python', 'flask')
 CONFIG = {
     'db': 'file',
+    'session_inactivity_ttl': 60*60*24*7,
 }
 
 app = FastAPI()
@@ -82,11 +84,13 @@ def read_random_topic(topic: str):
 @app.get("/session/new")
 def start_session():
     uid = str(uuid.uuid1())
-    db['sessions'][uid] = {'topics': set()}
+    db['sessions'][uid] = {'topics': set(), 'last_accessed': datetime.utcnow()}
     return {'id': uid}
 
 def session_topics(session_id, empty_is_valid=True):
-    return get_or_not_found(get_or_not_found(get_db('sessions'), session_id), 'topics', empty_is_valid=empty_is_valid)
+    session = get_or_not_found(get_db('sessions'), session_id)
+    session['last_accessed'] = datetime.utcnow()
+    return get_or_not_found(session, 'topics', empty_is_valid=empty_is_valid)
 
 @app.get("/session/{session_id}")
 def get_session_topics(session_id: str):
@@ -128,6 +132,12 @@ async def populate_repos_relating_to_topics():
 
     if not db.get('sessions'):
         db['sessions'] = {}
+
+    for session, o in db['sessions'].copy().items():
+        print('session', session, 'o', o)
+        if not o.get('last_accessed') or (datetime.utcnow() - o.get('last_accessed')).seconds > CONFIG['session_inactivity_ttl']:
+            print(f"EXPIRING SESSION {session}")
+            del db['sessions'][session]
 
     for topic in db['topics'].copy():
         await asyncio.sleep(0.1)
