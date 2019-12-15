@@ -4,8 +4,14 @@ ifeq ($(REMOTE), 1)
 	ec = make ec
 endif
 
+
+.PHONY: public_script
+public_script:
+	sed 's/localhost:8000/random-news-viewer.com:8000/' gm.js > public_greasemonkey_script.js
+
+
 .PHONY: build
-build:
+build: public_script
 	poetry export -f requirements.txt -o requirements.txt
 	poetry build
 
