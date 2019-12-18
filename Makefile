@@ -7,7 +7,7 @@ endif
 
 .PHONY: public_script
 public_script:
-	sed 's/localhost:8000/random-news-viewer.com:8000/' gm.js > public_greasemonkey_script.js
+	sed 's/localhost:8000/random-news-viewer.com:8000/' gm.js | sed 's/Github Expore+ (dev)/Github Expore+/' > public_greasemonkey_script.js
 
 
 .PHONY: build

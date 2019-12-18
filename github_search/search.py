@@ -49,13 +49,6 @@ def get_or_not_found(o, k, empty_is_valid=True):
 def get_db(k):
     return get_or_not_found(db, k)
 
-def get_session(k):
-    return db['sessions'].get(k) or not_found('session', k)
-
-@app.get("/")
-async def read_root():
-    return {"Hello": "World"}
-
 @app.get("/topics")
 def get_topics():
     return get_db('topics')
@@ -72,6 +65,9 @@ def read_raw_topic(topic: str):
 def random_topic_link(topic):
     return random.choice(get_db(topic)['items'])['html_url']
 
+def random_topic_link_session(session_id, topic):
+    return random_topic_link(topic)
+
 @app.get("/random")
 def read_random():
     topic = random.choice(list(get_db('topics')))
@@ -87,14 +83,20 @@ def start_session():
     db['sessions'][uid] = {'topics': set(), 'last_accessed': datetime.utcnow()}
     return {'id': uid}
 
-def session_topics(session_id, empty_is_valid=True):
-    session = get_or_not_found(get_db('sessions'), session_id)
-    session['last_accessed'] = datetime.utcnow()
-    return get_or_not_found(session, 'topics', empty_is_valid=empty_is_valid)
+def session(session_id):
+    return get_or_not_found(get_db('sessions'), session_id)
+
+def session_field(session_id, field, empty_is_valid=True):
+    s = session(session_id)
+    s['last_accessed'] = datetime.utcnow()
+    return get_or_not_found(s, field, empty_is_valid=empty_is_valid)
+
+def session_topics(session_id, **kwargs):
+    return session_field(session_id, 'topics', **kwargs)
 
 @app.get("/session/{session_id}")
-def get_session_topics(session_id: str):
-    return {'topics': session_topics(session_id)}
+def get_session_route(session_id: str):
+    return session(session_id)
 
 @app.get("/session/{session_id}/topics")
 def get_session_topics(session_id: str):
@@ -118,11 +120,11 @@ def new_session_topic(session_id: str, topic: str):
 def read_random_session_topic(session_id: str, topic: str):
     if topic not in session_topics(session_id):
         not_found(f'{session_id}/topic', topic)
-    return {'url': random_topic_link(topic)}
+    return {'url': random_topic_link_session(session_id, topic)}
 
 @app.get("/session/{session_id}/random")
 def read_random_session(session_id: str):
-    return {'url': random_topic_link(random.choice(list(session_topics(session_id, empty_is_valid=False))))}
+    return {'url': random_topic_link_session(session_id, random.choice(list(session_topics(session_id, empty_is_valid=False))))}
 
 async def populate_repos_relating_to_topics():
     if not len(topics or db.get('topics')):
@@ -134,7 +136,7 @@ async def populate_repos_relating_to_topics():
         db['sessions'] = {}
 
     for session, o in db['sessions'].copy().items():
-        print('session', session, 'o', o)
+        #print('session', session, 'o', o)
         if not o.get('last_accessed') or (datetime.utcnow() - o.get('last_accessed')).seconds > CONFIG['session_inactivity_ttl']:
             print(f"EXPIRING SESSION {session}")
             del db['sessions'][session]

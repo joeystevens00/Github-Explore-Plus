@@ -25,6 +25,11 @@ function create_session_id() {
   });
 }
 
+function navigate_to(url) {
+  console.log("Navigating to", url);
+  window.location.assign(url);
+}
+
 function navigate_to_random_github_repo() {
   const xhr = new XMLHttpRequest();
   const url=ENDPOINT+'/session/' + SESSION_ID + '/random';
@@ -33,8 +38,18 @@ function navigate_to_random_github_repo() {
   xhr.send();
 
   xhr.onreadystatechange = (e) => {
-    console.log("Navigating to", xhr.response['url']);
-    window.location.assign(xhr.response['url']);
+    navigate_to(xhr.response['url']);
+    (async () => {
+      var page_history = await GM.getValue("page-history", []);
+      page_history.push(xhr.response['url']);
+      page_value_max = parseInt(await GM.getValue("page-history-max", 2));
+      console.log('page_value_max', page_value_max);
+      while(page_history.length >= page_value_max+1) {
+          console.log('Purging page_history: ', page_history.shift());
+      }
+      await GM.setValue("page-history", page_history);
+      console.log('page_history', await GM.getValue("page-history"));
+    })();
   }
 }
 
@@ -119,7 +134,7 @@ function style_sheet() {
     .rghv-modal {
       display: none; /* Hidden by default */
       position: fixed; /* Stay in place */
-      z-index: 1; /* Sit on top */
+      z-index: 31; /* Sit on top */
       padding-top: 100px; /* Location of the box */
       left: 0;
       top: 0;
@@ -128,6 +143,20 @@ function style_sheet() {
       overflow: auto; /* Enable scroll if needed */
       background-color: rgb(0,0,0); /* Fallback color */
       background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+    }
+    .rghv-modal-popup {
+      padding: 5px 5px 5px 5px;
+      z-index: 32;
+      position: fixed;
+      left: 25%;
+      top: 0;
+      width: 50%; /* Full width */
+      overflow: auto; /* Enable scroll if needed */
+      background-color: rgb(254,254,254);
+      background-color: rgba(254, 254, 254, 1);
+      border: groove;
+      border-color: #5cb85c;
+      border-width: 5px;
     }
 
     /* Modal Content */
@@ -198,6 +227,8 @@ function style_sheet() {
 
     .rghv-topics-list {
       list-style-type: none;
+      display: flex;
+      flex-wrap: wrap;
     }
 
     .rghv-insite-menu {
@@ -301,11 +332,19 @@ function rghv_modal_body(topics) {
   return modal_body;
 }
 
-
+function navigate_to_last_page() {
+  (async () => {
+    var page_history = await GM.getValue("page-history");
+    console.log(page_history);
+    navigate_to(page_history[0]);
+  })();
+}
 
 function el(tag, inner_html, class_name) {
   e = document.createElement(tag);
-  e.innerHTML = inner_html;
+  if(inner_html) {
+    e.innerHTML = inner_html;
+  }
   if(class_name) {
     e.className = class_name;
    }
@@ -324,6 +363,55 @@ function next_article_control(label) {
   return rghv_button(label, function(e) { navigate_to_random_github_repo(); });
 }
 
+function display_history() {
+  (async () => {
+    c = el('div', undefined, 'rghv-modal-popup');
+    c.id = 'rghv-history';
+    history_list = el('ul');
+    var page_history = await GM.getValue("page-history", []);
+    page_history.forEach(function(page) {
+      l = el('li');
+      a = el('a', page);
+      a.href = page;
+      l.appendChild(a);
+      history_list.appendChild(l);
+    });
+    page_history_max = await GM.getValue("page-history-max");
+    history_size_input = el('input', undefined, 'rghv-history-size-input');
+    history_size_input.value = page_history_max;
+    history_size_input.addEventListener('focus', function(e) {
+      document.querySelector('.rghv-history-size-input').style.background = '';
+    });
+    save = rghv_button('save', function(e) {
+      (async () => {
+        var input_value = parseInt(document.querySelector('.rghv-history-size-input').value);
+        if(!input_value) {
+          document.querySelector('.rghv-history-size-input').style.background = 'red';
+        }
+
+        await GM.setValue("page-history-max", input_value);
+      })();
+    });
+    close = rghv_button('close', function(e) {
+      (async () => {
+        document.querySelector('#rghv-history').style.display = "none";
+      })();
+    });
+    c.appendChild(el('span', 'Maximum items to store'));
+    c.appendChild(history_size_input);
+    c.appendChild(save);
+    c.appendChild(close);
+    c.appendChild(history_list);
+    if(document.querySelector('#rghv-history')) {
+      document.querySelector('#rghv-history').style.display = "block";
+    }
+    else {
+      document.body.appendChild(c);
+    }
+  })();
+
+}
+
 function rghv_modal_footer() {
   var modal_footer = document.createElement('div');
   modal_footer.className = 'rghv-modal-footer';
@@ -334,10 +422,11 @@ function rghv_modal_footer() {
   controls_tip = document.createElement("span");
   control_next_article = document.createElement("span");
   controls_tip.innerHTML = "Use Keyboard Arrows to Navigate";
-  controls_tip.appendChild(next_article_control("(←Next Repo)"));
+  controls_tip.appendChild(next_article_control("(←Last Repo)"));
   controls_tip.appendChild(rghv_button("(↓See Topics)", function(e) { display_topics_as_notification(); }));
   controls_tip.appendChild(rghv_button("(↑Access Menu)", function(e) { display_menu(); })); // clicking should appear to do nothing
   controls_tip.appendChild(next_article_control("(Next Repo→)"));
+  controls_tip.appendChild(rghv_button("(History)", function(e) { display_history(); })); // clicking should appear to do nothing
   modal_footer.appendChild(controls_tip);
   modal_footer.appendChild(attribution);
   return modal_footer;
@@ -388,7 +477,7 @@ function checkKey(e) {
         // down arrow
     }
     else if (e.keyCode == '37') {
-      navigate_to_random_github_repo();
+      navigate_to_last_page();
        // left arrow
     }
     else if (e.keyCode == '39') {
@@ -457,7 +546,7 @@ insite_menu_control();
   if(!await GM.getValue("displayed-controls-notification", 0)) {
     await GM.setValue("displayed-controls-notification", 1);
     GM.notification({
-      text: "(←Next)(↓Topics)(↑Menu)(Next→)",
+      text: "(←Back)(↓Topics)(↑Menu)(Next→)",
       title: "Github Explore+",
       ondone: function() {
         console.log("notified controls.");
