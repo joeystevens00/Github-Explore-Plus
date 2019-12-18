@@ -336,7 +336,7 @@ function navigate_to_last_page() {
   (async () => {
     var page_history = await GM.getValue("page-history");
     console.log(page_history);
-    navigate_to(page_history[0]);
+    navigate_to(page_history[page_history.length-2]);
   })();
 }
 
