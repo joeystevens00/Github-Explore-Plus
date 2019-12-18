@@ -31,6 +31,8 @@ function navigate_to(url) {
 }
 
 function navigate_to_random_github_repo() {
+  (async () => { await GM.setValue("page-history-depth", 0); })();
+
   const xhr = new XMLHttpRequest();
   const url=ENDPOINT+'/session/' + SESSION_ID + '/random';
   xhr.open("GET", url);
@@ -336,7 +338,10 @@ function navigate_to_last_page() {
   (async () => {
     var page_history = await GM.getValue("page-history");
     console.log(page_history);
-    navigate_to(page_history[page_history.length-2]);
+    var current_page_history_depth = await GM.getValue("page-history-depth", 0);
+    console.log('page_history_depth', current_page_history_depth);
+    navigate_to(page_history[page_history.length-2-current_page_history_depth]);
+    await GM.setValue("page-history-depth", current_page_history_depth+1);
   })();
 }
 
