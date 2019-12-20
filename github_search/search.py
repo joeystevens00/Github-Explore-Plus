@@ -9,6 +9,9 @@ import uuid
 
 from fastapi import FastAPI, HTTPException
 import redis
+from starlette.requests import Request
+from starlette.staticfiles import StaticFiles
+from starlette.templating import Jinja2Templates
 
 from .util import bdecode
 from .data_utils import DB
@@ -20,12 +23,25 @@ CONFIG = {
 }
 
 app = FastAPI()
+templates = Jinja2Templates(directory="templates")
+app.mount("/static", StaticFiles(directory="static"), name="static")
 r = redis.Redis(os.environ.get('REDIS_HOST'))
 db = DB(write_to='file')
 ENDPOINT = "https://api.github.com/"
 HTML_URLS = True
 
 ACK = {'OK': True}
+
+@app.get('/gm.js')
+async def get_userscript(request: Request):
+    return templates.TemplateResponse(
+        "gm.js",
+        {
+            "request": request,
+            "endpoint": f'{request.url.scheme}://{request.url.hostname}:{request.url.port}'
+        },
+        media_type='application/javascript'
+    )
 
 def not_found(object_name, o=None):
     if o:
@@ -62,11 +78,26 @@ def new_topic(topic: str):
 def read_raw_topic(topic: str):
     return db.get(topic) or not_found('topic', topic)
 
-def random_topic_link(topic):
-    return random.choice(get_db(topic)['items'])['html_url']
+def random_topic_link(topic, exclude=None):
+    items = get_db(topic)['items']
+    if exclude:
+        def exclude_filter(i):
+            if i['html_url'] in exclude:
+                return False
+            return True
+        items = [i for i in filter(exclude_filter, items)]
+    return random.choice(items)['html_url']
 
 def random_topic_link_session(session_id, topic):
-    return random_topic_link(topic)
+    exclude = None
+    s = session(session_id)
+    if s.get('no_repeats'):
+        exclude = s.get('links_consumed', set())
+    link = random_topic_link(topic, exclude=exclude)
+    if not s.get('links_consumed'):
+        s['links_consumed'] = set()
+    s['links_consumed'].add(link)
+    return link
 
 @app.get("/random")
 def read_random():
@@ -94,9 +125,26 @@ def session_field(session_id, field, empty_is_valid=True):
 def session_topics(session_id, **kwargs):
     return session_field(session_id, 'topics', **kwargs)
 
+def update_session(session_id, values):
+    settings = ['no_repeats']
+    s = session(session_id)
+    valid_request = False
+    updated = {}
+    for k, v in values.items():
+        if k in settings:
+            s[k] = v
+            updated[k] = v
+    if not len(updated):
+        raise HTTPException(status_code=400, detail=f"Settings must be one of: {','.join(settings)}")
+    return session(session_id)
+
 @app.get("/session/{session_id}")
 def get_session_route(session_id: str):
     return session(session_id)
+
+@app.put("/session/{session_id}")
+async def update_session_route(request: Request, session_id: str):
+    return update_session(session_id, await request.json())
 
 @app.get("/session/{session_id}/topics")
 def get_session_topics(session_id: str):
