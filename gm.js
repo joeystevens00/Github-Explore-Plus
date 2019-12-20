@@ -11,6 +11,27 @@ const ENDPOINT = "http://localhost:8000";
 var SESSION_ID;
 var TOPICS;
 
+function insert_css(css) {
+  const ele= document.createElement('style');
+  ele.type = 'text/css';
+  ele.innerHTML = css;
+  document.head.appendChild(ele);
+}
+
+function get_url(url) {
+  return new Promise ((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("GET", url);
+    xhr.send();
+
+    xhr.onreadystatechange = (e) => {
+      if (xhr.readyState === XMLHttpRequest.DONE) {
+        resolve(xhr.response);
+      }
+    }
+  });
+}
+
 function create_session_id() {
     return new Promise ((resolve, reject) => {
       const xhr = new XMLHttpRequest();
@@ -91,9 +112,21 @@ function display_topics_as_notification() {
 
 function build_topics_list(topics, topics_list) {
   topics.forEach(topic => {
-    l = document.createElement("a");
-    l.innerHTML = topic;
-    l.addEventListener("click", function(e) {
+    //chip
+    l = createElementFromHTML(`<li>
+      <span class="rgv-chip rgv-c-hand">
+        <span>` + topic + `</span>
+        <a href="#" class="rgv-btn rgv-btn-clear" aria-label="Close" role="button"></a>
+      </span>
+    </li>`);
+    delete_l = l.children[0].children[1];
+    topic_l = l.children[0].children[0];
+    // without chip
+    // l = createElementFromHTML(`<li class="menu-item"></li>`);
+    //a = el('a', topic);
+    //a.appendChild(createElementFromHTML(`<i class="icon icon-link"></i>`));
+    // a.addEventListener("click", ...)
+    topic_l.addEventListener("click", function(e) {
       const xhr = new XMLHttpRequest();
       const url=ENDPOINT+'/session/' + SESSION_ID + '/random/' + topic;
       xhr.open("GET", url);
@@ -105,9 +138,8 @@ function build_topics_list(topics, topics_list) {
         window.location.assign(xhr.response['url']);
       }
     });
-    l.className = "rghv-button";
-    li = document.createElement("li");
-    delete_l = document.createElement("span");
+
+    //delete_l = document.createElement("span");
     delete_l.addEventListener("click", function(e) {
       const xhr = new XMLHttpRequest();
       const url=ENDPOINT+'/session/' + SESSION_ID + '/topic/delete/' + topic;
@@ -118,129 +150,41 @@ function build_topics_list(topics, topics_list) {
         rerender_topics_list();
       }
     });
-    delete_l.style.color = "red";
-    delete_l.innerHTML = "&times;";
-    delete_l.id = "delete";
-    delete_l.className = "rghv-button";
-    li.appendChild(l);
-    li.appendChild(delete_l);
-    topics_list.appendChild(li);
+    // delete_l.style.color = "red";
+    // delete_l.innerHTML = "&times;";
+    // delete_l.id = "delete";
+    // delete_l.className = "rghv-button";
+    //l.appendChild(a);
+    //l.appendChild(delete_l);
+    topics_list.appendChild(l);
   });
+  console.log(topics_list);
   return topics_list;
 }
 
 function style_sheet() {
   var style = document.createElement('style');
   style.innerHTML = `
-    /* The Modal (background) */
-    .rghv-modal {
-      display: none; /* Hidden by default */
-      position: fixed; /* Stay in place */
-      z-index: 31; /* Sit on top */
-      padding-top: 100px; /* Location of the box */
-      left: 0;
-      top: 0;
-      width: 100%; /* Full width */
-      height: 100%; /* Full height */
-      overflow: auto; /* Enable scroll if needed */
-      background-color: rgb(0,0,0); /* Fallback color */
-      background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
-    }
-    .rghv-modal-popup {
-      padding: 5px 5px 5px 5px;
-      z-index: 32;
-      position: fixed;
-      left: 25%;
-      top: 0;
-      width: 50%; /* Full width */
-      overflow: auto; /* Enable scroll if needed */
-      background-color: rgb(254,254,254);
-      background-color: rgba(254, 254, 254, 1);
-      border: groove;
-      border-color: #5cb85c;
-      border-width: 5px;
-    }
-
-    /* Modal Content */
-    .rghv-modal-content {
-      position: relative;
-      background-color: #fefefe;
-      margin: auto;
-      padding: 0;
-      border: 1px solid #888;
-      width: 80%;
-      box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2),0 6px 20px 0 rgba(0,0,0,0.19);
-      -webkit-animation-name: animatetop;
-      -webkit-animation-duration: 0.4s;
-      animation-name: animatetop;
-      animation-duration: 0.4s
-    }
-
-    /* Add Animation */
-    @-webkit-keyframes animatetop {
-      from {top:-300px; opacity:0}
-      to {top:0; opacity:1}
-    }
-
-    @keyframes animatetop {
-      from {top:-300px; opacity:0}
-      to {top:0; opacity:1}
-    }
-
-    /* The rghv-close Button */
-    .rghv-close {
-      color: white;
-      float: right;
-      font-size: 28px;
-      font-weight: bold;
-    }
-
-    .rghv-close:hover,
-    .rghv-close:focus {
-      color: #000;
-      text-decoration: none;
-      cursor: pointer;
-    }
-
-    .rghv-button {
-      font-weight: bold;
-      padding-left: 1px;
-      padding-right: 1px;
-    }
-
-    .rghv-button:hover,
-    .rghv-button:focus {
-      cursor: pointer;
-    }
-
-    .rghv-modal-header {
-      padding: 2px 16px;
-      background-color: #5cb85c;
-      color: white;
-    }
-
-    .rghv-modal-body {padding: 2px 16px;}
-
-    .rghv-modal-footer {
-      padding: 2px 16px;
-      background-color: #5cb85c;
-      color: white;
-    }
-
-    .rghv-topics-list {
+    .rghv-topics-list, .rghv-history-list {
       list-style-type: none;
       display: flex;
       flex-wrap: wrap;
     }
 
     .rghv-insite-menu {
-      background-color: #5cb85c;
       color: white;
       padding: 3px 3px;
       position: fixed;
       left: 0px;
-      top: 90%;
+      top: 50%;
+      width: 1%;
   		opacity: .5;
+      display: flex;
+      flex-wrap: wrap;
+    }
+
+    .rghv-insite-menu > button {
+      margin: 1px;
     }
 
     .rghv-attribution {
@@ -253,26 +197,26 @@ function style_sheet() {
 
 function rghv_modal_header() {
   var modal_header = document.createElement("div");
-  modal_header.className = "rghv-modal-header";
-  var close = document.createElement("span");
+  var modal_header = createElementFromHTML(`
+      <div class="rgv-modal-header">
+        <div class="rgv-modal-title h5">Github Explore+</div>
+      </div>
+  `)
+  var close = createElementFromHTML(`<a class="rgv-btn rgv-btn-clear rgv-float-right rghv-close" aria-label="Close"></a>`);
   close.addEventListener("click", function(e) {
-    modal = document.querySelector('.rghv-modal');
+    modal = document.querySelector('#rghv-modal');
     modal.parentNode.removeChild(modal);
   });
-  close.className = "rghv-close";
-  close.innerHTML = "&times;";
-  var mh_header = document.createElement("h2");
-  mh_header.innerHTML = "Github Explore+";
   modal_header.appendChild(close);
-  modal_header.appendChild(mh_header);
   return modal_header;
 }
 
 function rerender_topics_list() {
   get_topics(function(topics) {
+    new_list = new_topics_list();
+    new_list = build_topics_list(topics, new_list);
     topics_list = document.querySelector('.rghv-topics-list');
-    topics_list.innerHTML = "";
-    topics_list = build_topics_list(topics, topics_list);
+    topics_list.parentNode.replaceChild(new_list, topics_list);
   });
 }
 
@@ -289,48 +233,78 @@ function submit_new_topic() {
   document.querySelector('#rnv_get_topic').value = "";
 }
 
+function new_topics_list() {
+  return createElementFromHTML(`
+    <ul class="rgv-menu rghv-topics-list">
+      <li class="divider" data-content="TOPICS"></li>
+    </ul>
+  `);
+}
+
 function rghv_modal_body(topics) {
-  var modal_body = document.createElement("rghv-modal-body");
-  var input_label = document.createElement("p");
-  input_label.innerHTML = "Enter a new topic (enter to save)";
-  topics_list = document.createElement('ul');
-  topics_list.className = "rghv-topics-list";
+  var modal_body = createElementFromHTML(`<div class="rgv-modal-body rghv-modal-body"></div>`)
+  var modal_content = createElementFromHTML(`
+    <div class="rgv-content">
+      <h2>Existing topics</h2>
+    </div>
+  `);
+  topics_list = new_topics_list();
   topics_list = build_topics_list(topics, topics_list);
-  topic_list_label = document.createElement("h2");
-  topic_list_label.innerHTML = "Existing topics";
-  var input = document.createElement("input");
-  input.id = "rnv_get_topic";
+  var input = createElementFromHTML(`
+    <div class="rgv-form-group">
+      <label class="rgv-form-label" for="rnv_get_topic">Enter a new topic (press enter to save)</label>
+      <input class="rgv-form-input" type="text" id="rnv_get_topic" placeholder="Topic">
+    </div>
+  `);
   input.addEventListener("keyup", function(e) {
       if(e.key === "Enter") {
         submit_new_topic()
       }
   });
-  var new_session = document.createElement("button");
-  new_session.innerHTML = "clear all";
+  var new_session = createElementFromHTML(`
+    <button class="rgv-btn rgv-btn-primary rgv-btn-sm"><i class="rgv-icon rgv-icon-arrow-left"></i>clear all</button>
+  `);
   new_session.addEventListener("click", function(e) {
     (async () => {
       await refresh_session();
       rerender_topics_list();
     })();
   });
-  var save_input = document.createElement("button");
+  var save_input = createElementFromHTML(`
+    <button class="rgv-btn rgv-btn-primary rgv-btn-sm"><i class="rgv-icon rgv-icon-arrow-left"></i>save</button>
+  `);
   save_input.addEventListener("click", function(e) {
     submit_new_topic()
   });
-  save_input.innerHTML = "save";
-  new_session.addEventListener("click", function(e) {
-    (async () => {
-      await refresh_session();
-      rerender_topics_list();
-    })();
-  });
+  var allow_repeats = createElementFromHTML(`
+      <label class="rgv-form-switch">
+        <input type="checkbox" class="rghv-allow-repeats">
+        <i class="rgv-form-icon"></i>repeat?
+      </label>
+  `);
+  (async () => {
+    allow_repeats.children[0].checked = await GM.getValue("allow_repeats", true);
+    console.log('setting allow_repeats', allow_repeats.children[0].checked);
 
-  modal_body.appendChild(topic_list_label);
-  modal_body.appendChild(topics_list);
-  modal_body.appendChild(input_label);
-  modal_body.appendChild(input);
-  modal_body.appendChild(save_input);
-  modal_body.appendChild(new_session);
+  })();
+  allow_repeats.addEventListener('click', function() {
+      (async () => {
+        allow_repeats_value = document.querySelector('.rghv-allow-repeats').checked;
+        await GM.setValue("allow_repeats", allow_repeats_value);
+        const xhr = new XMLHttpRequest();
+        const url=ENDPOINT+'/session/' + SESSION_ID;
+        xhr.open("PUT", url);
+        xhr.responseType = 'json';
+        xhr.send(JSON.stringify({'no_repeats': !allow_repeats_value}));
+        console.log('setting allow_repeats', allow_repeats_value);
+      })();
+  });
+  modal_content.appendChild(topics_list);
+  modal_content.appendChild(input);
+  modal_content.appendChild(save_input);
+  modal_content.appendChild(new_session);
+  modal_content.appendChild(allow_repeats);
+  modal_body.appendChild(modal_content);
   return modal_body;
 }
 
@@ -357,7 +331,9 @@ function el(tag, inner_html, class_name) {
 }
 
 function rghv_button(label, click_cb) {
-  b = el('span', label, 'rghv-button');
+  var b = createElementFromHTML(`
+    <button class="rgv-btn rgv-btn-primary rgv-btn-sm rghv-button"><i class="rgv-icon rgv-icon-arrow-left"></i>`+label+`</button>
+  `);
   b.addEventListener("click", function(e) {
     click_cb();
   });
@@ -370,16 +346,32 @@ function next_article_control(label) {
 
 function display_history() {
   (async () => {
-    c = el('div', undefined, 'rghv-modal-popup');
-    c.id = 'rghv-history';
-    history_list = el('ul');
+    modal = createElementFromHTML(`
+      <div class="rgv-modal rgv-modal-lg rgv-active rghv-modal-popup" id="rghv-history">
+        <a href="#close" class="rgv-modal-overlay" aria-label="Close"></a>
+        <div class="rgv-modal-container">
+          <div class="rgv-modal-header">
+            <a href="#close" class="rgv-btn rgv-btn-clear rgv-float-right" aria-label="Close"></a>
+            <div class="rgv-modal-title h5">Explore+ History</div>
+          </div>
+          <div class="modal-body">
+            <div class="content"></div>
+          </div>
+          <div class="modal-footer"></div>
+        </div>
+      </div>
+    `);
+    c = modal.children[1].children[1].children[0];
+    history_list = createElementFromHTML(`<ul class="rgv-menu rghv-history-list"></ul>`);
     var page_history = await GM.getValue("page-history", []);
     page_history.forEach(function(page) {
-      l = el('li');
-      a = el('a', page);
-      a.href = page;
-      l.appendChild(a);
-      history_list.appendChild(l);
+      history_list.appendChild(createElementFromHTML(`
+        <li class="menu-item">
+          <a href="`+page+`">
+            <i class="icon icon-link"></i>`+page+`
+          </a>
+        </li>
+      `));
     });
     page_history_max = await GM.getValue("page-history-max");
     history_size_input = el('input', undefined, 'rghv-history-size-input');
@@ -398,9 +390,7 @@ function display_history() {
       })();
     });
     close = rghv_button('close', function(e) {
-      (async () => {
-        document.querySelector('#rghv-history').style.display = "none";
-      })();
+      document.querySelector('#rghv-history').style.display = "none";
     });
     c.appendChild(el('span', 'Maximum items to store'));
     c.appendChild(history_size_input);
@@ -408,62 +398,70 @@ function display_history() {
     c.appendChild(close);
     c.appendChild(history_list);
     if(document.querySelector('#rghv-history')) {
-      document.querySelector('#rghv-history').style.display = "block";
+      document.querySelector('#rghv-history').style.display = "flex";
     }
     else {
-      document.body.appendChild(c);
+      document.body.appendChild(modal);
+      modal.children[0].onclick = function(e) {
+        document.querySelector('#rghv-history').style.display = "none";
+      }
     }
   })();
 
 }
 
 function rghv_modal_footer() {
-  var modal_footer = document.createElement('div');
-  modal_footer.className = 'rghv-modal-footer';
+  var modal_footer = createElementFromHTML(`
+    <div class="rgv-modal-footer">
+    </div>
+  `);
   var github_link = el('a', 'Project Source');
   github_link.href = 'https://github.com/joeystevens00/Github-Explore-Plus';
   var attribution = el("span", "", "rghv-attribution");
   attribution.appendChild(github_link);
-  controls_tip = document.createElement("span");
-  control_next_article = document.createElement("span");
-  controls_tip.innerHTML = "Use Keyboard Arrows to Navigate";
-  controls_tip.appendChild(next_article_control("(←Last Repo)"));
-  controls_tip.appendChild(rghv_button("(↓See Topics)", function(e) { display_topics_as_notification(); }));
-  controls_tip.appendChild(rghv_button("(↑Access Menu)", function(e) { display_menu(); })); // clicking should appear to do nothing
-  controls_tip.appendChild(next_article_control("(Next Repo→)"));
-  controls_tip.appendChild(rghv_button("(History)", function(e) { display_history(); })); // clicking should appear to do nothing
-  modal_footer.appendChild(controls_tip);
   modal_footer.appendChild(attribution);
   return modal_footer;
 }
 
 function rghv_modal_content(topics) {
-  var modal_content = document.createElement("div");
-  modal_content.className = "rghv-modal-content";
+  var modal_content = createElementFromHTML(`<div class="rgv-modal-container"></div>`);
   modal_content.appendChild(rghv_modal_header());
   modal_content.appendChild(rghv_modal_body(topics));
   modal_content.appendChild(rghv_modal_footer());
   return modal_content;
 }
 
+function createElementFromHTML(htmlString) {
+  var div = document.createElement('div');
+  div.innerHTML = htmlString.trim();
+
+  // Change this to div.childNodes to support multiple top-level nodes
+  return div.firstChild;
+}
+
 async function display_menu() {
   TOPICS = await load_topics_for_valid_session();
   // avoid opening multiple times
-  if (document.querySelector('.rghv-modal') && document.querySelector('.rghv-modal').style.display === "block") {return}
+  if (document.querySelector('#rghv-modal') && document.querySelector('#rghv-modal').style.display === "flex") {return}
   style = style_sheet();
   document.head.appendChild(style);
-  var modal = document.createElement("div");
-  modal.className = "rghv-modal";
+  var modal = createElementFromHTML(`
+    <div class="rgv-modal rgv-active" id="rghv-modal">
+      <a href="#close" class="rgv-modal-overlay" aria-label="Close"></a>
+    </div>
+  `);
   modal.appendChild(rghv_modal_content(TOPICS));
   document.body.appendChild(modal);
-  modal.style.display="block";
-
-  // When the user clicks anywhere outside of the modal, rghv-close it
-  window.onclick = function(event) {
-    if (event.target == modal) {
-      modal.parentNode.removeChild(modal);
-    }
+  modal.style.display="flex";
+  modal.children[0].onclick = function(e) {
+    modal.parentNode.removeChild(modal);
   }
+  // When the user clicks anywhere outside of the modal
+  // window.onclick = function(event) {
+  //   if (event.target == modal) {
+  //     modal.parentNode.removeChild(modal);
+  //   }
+  // }
 }
 
 document.onkeydown = checkKey;
@@ -490,6 +488,17 @@ function checkKey(e) {
       navigate_to_random_github_repo();
     }
 
+    //escape
+    else if (e.keyCode == '27') {
+      hide_element('#rghv-modal');
+      hide_element('#rghv-history');
+    }
+}
+
+function hide_element(selector) {
+  if (document.querySelector(selector) && document.querySelector(selector).style.display !== "none") {
+    document.querySelector(selector).style.display = "none";
+  }
 }
 
 function load_topics_for_valid_session() {
@@ -527,11 +536,17 @@ function load_topics_for_valid_session() {
 function insite_menu_control() {
   menu = document.createElement('div');
   menu.className = "rghv-insite-menu";
-  menu.innerHTML = "Explore+";
-  menu.addEventListener("click", function(e) {
-    display_menu();
-  });
+  menu.appendChild(next_article_control("Next Repo(→)"));
+  menu.appendChild(next_article_control("Last Repo(←)"));
+  menu.appendChild(rghv_button("Access Menu(↑)", function(e) { display_menu(); })); // clicking should appear to do nothing
+  menu.appendChild(rghv_button("See Topics(↓)", function(e) { display_topics_as_notification(); }));
+  menu.appendChild(rghv_button("History", function(e) { display_history(); })); // clicking should appear to do nothing
+  // menu.addEventListener("click", function(e) {
+  //   display_menu();
+  // });
   document.head.appendChild(style_sheet());
+  //document.head.appendChild(createElementFromHTML('<link rel="stylesheet" href="https://unpkg.com/spectre.css/dist/spectre.min.css">'))
+  (async () => { insert_css(await get_url(ENDPOINT+'/static/spectre.min.css')); })();
   document.body.appendChild(menu);
 }
 
