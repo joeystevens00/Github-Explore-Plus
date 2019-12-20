@@ -4,6 +4,8 @@ FROM python:3.7
 WORKDIR /app
 ADD dist/*.whl .
 ADD requirements.txt .
+ADD static static
+ADD templates templates
 
 # Install dependencies
 RUN pip install -r requirements.txt
