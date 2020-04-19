@@ -1,6 +1,8 @@
-version: '2'
+version: '3.3'
 
 services:
+  redis:
+    image: redis
   app:
     image: github_explore_plus:latest
     restart: always
@@ -9,3 +11,5 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    environment:
+      - REDIS_HOST=redis
