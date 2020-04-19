@@ -7,7 +7,7 @@
 // @grant    GM.getValue
 // ==/UserScript==
 
-const ENDPOINT = "http://localhost:8000";
+const ENDPOINT = "http://localhost:8001";
 var SESSION_ID;
 var TOPICS;
 

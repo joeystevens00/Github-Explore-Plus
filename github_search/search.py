@@ -48,10 +48,11 @@ def not_found(object_name, o=None):
         object_name += f"({o})"
     raise HTTPException(status_code=404, detail=f"{object_name.upper()} not found")
 
-def repo(*topics):
+def repo(*topics, raw_query=False):
+    query_type = '' if raw_query else 'topic:'
     return requests.get(
         f'{ENDPOINT}search/repositories?q=' +
-            '+'.join([f'topic:{topic}' for topic in topics])
+            '+'.join([f'{query_type}{topic}' for topic in topics])
         ).json()
 
 def get_or_not_found(o, k, empty_is_valid=True):
@@ -193,7 +194,12 @@ async def populate_repos_relating_to_topics():
         await asyncio.sleep(0.1)
         if not db.get(topic):
             print(f"Fetching Github Repo for {topic}")
-            db[topic] = repo(topic)
+            repo_args = {'topic':topic}
+            if ':' in topic and topic.split(':')[0] == 'raw':
+                repo_args['raw_query'] = True
+                repo_args['topic'] = ':'.join(topic.split(':')[1:])
+                print(repr({**repo_args}))
+            db[topic] = repo(repo_args.pop('topic'), **repo_args)
     await asyncio.sleep(1)
     asyncio.get_event_loop().create_task(populate_repos_relating_to_topics())
 
