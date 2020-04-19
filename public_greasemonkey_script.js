@@ -7,7 +7,7 @@
 // @grant    GM.getValue
 // ==/UserScript==
 
-const ENDPOINT = "http://random-news-viewer.com:8000";
+const ENDPOINT = "https://github-explorer.mormo.dev/";
 var SESSION_ID;
 var TOPICS;
 
