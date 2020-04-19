@@ -1,5 +1,7 @@
 FROM python:3.7
 
+HEALTHCHECK --interval=5s --timeout=3s CMD curl --fail http://localhost:8000/docs || exit 1
+
 # Add software artifacts
 WORKDIR /app
 COPY . /app
